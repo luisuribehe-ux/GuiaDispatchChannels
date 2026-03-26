@@ -1,0 +1,995 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dispatch + Channels + Computer Use - Guia Completa | LuisconIA</title>
+  <meta name="description" content="16 casos de uso reales con prompts completos. Setup paso a paso. Checklists interactivos. Computer Use.">
+  <meta property="og:title" content="Dispatch + Channels + Computer Use - Guia Completa">
+  <meta property="og:description" content="16 casos de uso reales con prompts para copiar y pegar. Por LuisconIA / Neura.Lab">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: #080808; font-family: 'Outfit', -apple-system, sans-serif; }
+    ::-webkit-scrollbar { width: 5px; }
+    ::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
+    @keyframes fadeSlide { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+const { useState } = React;
+
+const COWORK = "#D97706";
+const CODE = "#10B981";
+const TG = "#0088CC";
+const DC = "#5865F2";
+const COMPUTER_USE = "#EF4444";
+
+// ============ COMPUTER USE CASES ============
+const computerUseCases = [
+  {
+    id: "cu-presentation-pdf",
+    title: "Exportar presentacion como PDF",
+    scenario: "Le mandas un mensaje desde tu telefono y Claude abre Keynote/PowerPoint en tu Mac, exporta como PDF y lo guarda.",
+    icon: "📑",
+    difficulty: "Facil",
+    time: "~2 min",
+    prompt: `Abre el archivo /Documents/Presentations/pitch-Q1.pptx en PowerPoint.
+
+Exporta la presentacion como PDF con las siguientes opciones:
+- Calidad alta
+- Incluir notas del presentador como paginas separadas
+
+Guarda el PDF resultante como "pitch-Q1-final.pdf" en /Documents/Presentations/Export/
+
+Cuando termines, confirma el tamano del archivo y numero de paginas.`,
+    result: "Claude abre PowerPoint controlando mouse y teclado, navega los menus de exportacion, y guarda el PDF. Todo visible en tu pantalla.",
+    tips: ["Computer Use toma screenshots de tu pantalla para navegar — es mas lento que conectores directos", "Si tienes el conector de PowerPoint activado, Claude lo usara primero (mas rapido)", "Funciona con cualquier app que puedas abrir manualmente"],
+  },
+  {
+    id: "cu-browser-research",
+    title: "Research en browser + compilar datos",
+    scenario: "Necesitas datos de 5 sitios web diferentes compilados en un spreadsheet. Claude navega por ti.",
+    icon: "🌐",
+    difficulty: "Medio",
+    time: "~10 min",
+    prompt: `Necesito investigar precios de 5 competidores para nuestro analisis trimestral.
+
+Abre Safari y visita estos sitios:
+1. competitor1.com/pricing
+2. competitor2.com/plans
+3. competitor3.com/pricing
+4. competitor4.io/plans
+5. competitor5.com/pricing
+
+Para cada uno, captura:
+- Nombre del plan mas popular
+- Precio mensual y anual
+- Features principales incluidos
+- Limites de usuarios
+
+Compila todo en un nuevo spreadsheet en Numbers o Excel.
+Guarda como "competitive-pricing-[fecha].xlsx" en /Documents/Strategy/
+
+NO ingreses credenciales en ningun sitio. Solo informacion publica.`,
+    result: "Claude abre el browser, navega cada sitio, extrae datos visualmente de las paginas de pricing, y los compila en un Excel.",
+    tips: ["Cuidado con prompt injection — sitios maliciosos pueden intentar dar instrucciones a Claude via texto oculto", "No tengas tu banca abierta mientras Claude navega", "Claude prioriza conectores > browser. Solo usa screen control cuando no hay alternativa"],
+  },
+  {
+    id: "cu-image-batch",
+    title: "Procesamiento batch de imagenes",
+    scenario: "Tienes 20 imagenes que necesitan resize y marca de agua. Claude abre tu editor de fotos y las procesa.",
+    icon: "🖼️",
+    difficulty: "Medio",
+    time: "~8 min",
+    prompt: `En /Desktop/Product-Photos/ tengo 20 imagenes JPG de productos.
+
+Necesito que para cada imagen:
+1. Abre la imagen en Preview (o Photoshop si esta disponible)
+2. Resize a 1200x1200px manteniendo proporcion
+3. Anade texto "© MiEmpresa 2026" en la esquina inferior derecha, semi-transparente
+4. Guarda en /Desktop/Product-Photos/Processed/ como JPG calidad 85%
+
+Si Preview no permite batch processing, usa la terminal para hacer el resize con sips o ImageMagick, y luego agrega el watermark con la herramienta mas eficiente disponible.
+
+Reporta cuantas imagenes procesaste y el tamano total de la carpeta final.`,
+    result: "Claude evalua las herramientas disponibles en tu Mac y elige la mas eficiente — puede usar Preview, terminal con sips, o Photoshop si lo tienes.",
+    tips: ["Claude es inteligente: si puede hacer algo por terminal lo hara (mas rapido que navegar UI)", "Para tareas batch, generalmente el approach de terminal es mejor que abrir apps graficas", "Funciona con cualquier app instalada en tu Mac"],
+  },
+  {
+    id: "cu-dispatch-combo",
+    title: "COMBO: Dispatch + Computer Use desde el telefono",
+    scenario: "Estas en el tren. Le mandas un mensaje a Claude desde tu iPhone y el controla tu Mac en casa para completar la tarea.",
+    icon: "📱",
+    difficulty: "Avanzado",
+    time: "~15 min",
+    prompt: `Tengo una presentacion importante manana. Desde mi telefono necesito que hagas lo siguiente en mi Mac:
+
+1. Abre el archivo /Documents/Pitch/client-proposal.key en Keynote
+2. En la slide 3, actualiza el numero de revenue de "$450K" a "$520K"
+3. En la slide 7, el grafico de barras necesita actualizarse — abre el Excel vinculado y cambia Q4 de 120 a 145
+4. Exporta la presentacion final como PDF
+5. Abre Gmail en Safari y crea un borrador de email para carlos@cliente.com con:
+   - Asunto: "Propuesta actualizada - Q1 Review"
+   - Cuerpo: mensaje profesional adjuntando el PDF
+   - NO envies el email, solo dejalo como borrador
+
+Cuando termines, mandame un resumen de todos los cambios que hiciste.
+
+IMPORTANTE: Si algo no funciona como espero (archivo no encontrado, app no abre), reportame el error en lugar de improvisar.`,
+    result: "Claude controla tu Mac remotamente: abre Keynote, edita slides, actualiza Excel, exporta PDF, abre Gmail en Safari, crea borrador. Todo mientras tu estas en el tren.",
+    tips: ["Este es el caso de uso mas potente: Dispatch + Computer Use juntos", "Antes de ayer esto era imposible — Dispatch no podia abrir apps ni interactuar con UI", "Siempre pide que reporte errores en lugar de improvisar para mantener control", "macOS solamente por ahora — Windows viene proximamente"],
+  },
+];
+
+// ============ DISPATCH CASES ============
+const dispatchCases = [
+  {
+    id: "email-triage",
+    title: "Triage de emails matutino",
+    scenario: "Estas en el bus camino al trabajo. Quieres llegar con tu inbox procesado.",
+    icon: "📧",
+    difficulty: "Facil",
+    time: "~3 min",
+    prompt: `Revisa mi bandeja de Gmail de las ultimas 24 horas.
+
+Clasificalos en 3 grupos:
+1. URGENTE — requiere respuesta hoy
+2. IMPORTANTE — requiere accion esta semana
+3. INFORMATIVO — solo necesito saber que existe
+
+Para cada email urgente, redacta un borrador de respuesta corta y profesional.
+
+Presenta todo en una tabla con: Remitente | Asunto | Categoria | Accion sugerida
+
+Guarda el resultado en un archivo llamado "triage-inbox-[fecha de hoy].md" en mi carpeta /Documents/Daily/`,
+    result: "Claude accede a Gmail via conector, clasifica ~20-40 emails, genera borradores y guarda el archivo en tu desktop.",
+    tips: ["Activa el conector de Gmail antes en Cowork", "Si tienes muchos emails, limita a 'ultimas 12 horas'", "Funciona mejor si ya tienes carpeta /Documents/Daily/ creada"],
+  },
+  {
+    id: "meeting-prep",
+    title: "Prep de reunion con cliente",
+    scenario: "Tienes reunion en 1 hora. Necesitas contexto de las ultimas interacciones y datos del proyecto.",
+    icon: "🤝",
+    difficulty: "Medio",
+    time: "~5 min",
+    prompt: `Necesito prepararme para una reunion con el cliente Acme Corp en 1 hora.
+
+Busca en mis archivos locales y Google Drive:
+1. Cualquier documento que mencione "Acme" o "Acme Corp"
+2. Los ultimos emails con contactos de @acme.com en Gmail
+3. Cualquier presentacion o propuesta reciente
+
+Con esa informacion, crea un brief de reunion que incluya:
+- Resumen del estado actual del proyecto/relacion
+- Ultimos temas discutidos por email
+- 3 puntos clave para traer a la reunion
+- Preguntas pendientes que detectes
+
+Formato: documento conciso, maximo 1 pagina. Guardalo como "prep-acme-[fecha].md" en /Documents/Meetings/`,
+    result: "Claude busca en Drive, Gmail y archivos locales, cruza la info y genera un brief ejecutivo listo para leer antes de entrar.",
+    tips: ["Mientras mas especifico el nombre del cliente, mejores resultados", "Si tienes Slack conectado, agrega 'y en Slack' a la busqueda", "Funciona bien con nombres de proyecto tambien"],
+  },
+  {
+    id: "weekly-report",
+    title: "Reporte semanal automatico",
+    scenario: "Viernes por la tarde. Tu jefe espera el reporte semanal y no quieres armarlo manualmente.",
+    icon: "📊",
+    difficulty: "Medio",
+    time: "~8 min",
+    prompt: `Genera mi reporte semanal. Revisa las siguientes fuentes:
+
+1. Mi Google Calendar de esta semana — lista las reuniones que tuve
+2. Mi Gmail — identifica los hilos mas relevantes de la semana
+3. Los archivos modificados esta semana en /Projects/Q1/
+
+Estructura del reporte:
+## Resumen ejecutivo (3 lineas maximo)
+## Reuniones clave y decisiones tomadas
+## Avances en proyectos (basado en archivos modificados)
+## Pendientes para la proxima semana
+## Blockers o riesgos identificados
+
+Formato: profesional pero conciso. Guarda como Excel en /Documents/Reports/weekly-report-semana-[numero].xlsx con una pestana por seccion.`,
+    result: "Claude cruza Calendar + Gmail + filesystem, genera un Excel profesional con formulas y formato.",
+    tips: ["Programa esto como tarea recurrente: /schedule -> viernes 4pm", "Si usas Slack, agrega 'y mis mensajes de Slack de la semana'", "Ajusta las rutas de carpeta a tu estructura real"],
+  },
+  {
+    id: "expense-report",
+    title: "Reporte de gastos desde fotos",
+    scenario: "Viaje de negocios. Tienes 15 fotos de recibos en tu escritorio y necesitas un reporte.",
+    icon: "🧾",
+    difficulty: "Facil",
+    time: "~5 min",
+    prompt: `En mi carpeta /Desktop/Receipts/ tengo fotos de recibos de mi ultimo viaje de negocios.
+
+Para cada foto:
+1. Identifica el establecimiento, fecha, monto y categoria (transporte, alimentacion, hospedaje, otro)
+2. Extrae los datos relevantes
+
+Luego crea un Excel en /Documents/Expenses/ llamado "gastos-viaje-[mes]-2026.xlsx" con:
+- Pestana "Detalle": tabla con Fecha | Establecimiento | Categoria | Monto | Moneda
+- Pestana "Resumen": total por categoria con un grafico de barras
+- Pestana "Para contabilidad": formato listo para enviar al contador
+
+Ordena por fecha. Montos en USD.`,
+    result: "Claude lee las imagenes de recibos, extrae datos, y genera un Excel profesional con multiples pestanas.",
+    tips: ["Asegurate que las fotos sean legibles (no borrosas)", "Funciona con JPG, PNG", "Si los recibos son en otro idioma, Claude los traduce automaticamente"],
+  },
+  {
+    id: "research-compile",
+    title: "Compilar investigacion de mercado",
+    scenario: "Necesitas armar un analisis competitivo pero la info esta repartida en 8 documentos distintos en Drive.",
+    icon: "🔍",
+    difficulty: "Avanzado",
+    time: "~10 min",
+    prompt: `Busca en mi Google Drive todos los documentos que contengan analisis de competencia, benchmark, o comparativos de mercado del ultimo trimestre.
+
+Con los documentos que encuentres:
+1. Extrae los datos clave de cada competidor mencionado
+2. Identifica tendencias o patrones que se repitan en multiples docs
+3. Detecta gaps de informacion (que competidores faltan, que datos no tenemos)
+
+Crea un documento consolidado con:
+## Mapa competitivo (tabla comparativa)
+## Tendencias identificadas
+## Fortalezas y debilidades por competidor
+## Gaps de informacion
+## Recomendaciones para siguiente fase de research
+
+Guarda como PowerPoint en /Documents/Strategy/ con maximo 10 slides, diseno limpio y profesional.`,
+    result: "Claude busca en Drive, consolida multiples fuentes, y genera un deck estrategico con data cruzada.",
+    tips: ["Si tienes Notion conectado, agrega 'y en mi Notion workspace'", "Para mejores resultados, menciona nombres especificos de competidores", "Puedes pedir que lo guarde en formato Google Slides si prefieres"],
+  },
+  {
+    id: "file-organize",
+    title: "Organizar archivos del proyecto",
+    scenario: "Tu carpeta de proyecto es un caos. 200+ archivos sin estructura. Necesitas orden.",
+    icon: "📁",
+    difficulty: "Medio",
+    time: "~5 min",
+    prompt: `Revisa la carpeta /Projects/ClienteX/ y todos sus subdirectorios.
+
+1. Lista todos los archivos con su tipo, tamano y fecha de modificacion
+2. Identifica archivos duplicados o con nombres similares
+3. Detecta archivos que no se han modificado en mas de 6 meses
+
+Propon una estructura de carpetas organizada:
+/ClienteX/
+  /01-Propuestas/
+  /02-Contratos/
+  /03-Entregables/
+  /04-Comunicaciones/
+  /05-Facturacion/
+  /Archive/
+
+NO muevas nada todavia. Solo genera un plan de reorganizacion en un archivo "plan-reorganizacion.md" que muestre:
+- Estructura propuesta
+- Que archivo va a donde
+- Duplicados para eliminar
+- Archivos para archivar
+
+Lo reviso y luego te pido que ejecutes el plan.`,
+    result: "Claude analiza tu filesystem, detecta patrones y genera un plan de accion que tu apruebas antes de ejecutar.",
+    tips: ["NUNCA pidas que mueva archivos sin revisar el plan primero", "El approach de 'planificar -> aprobar -> ejecutar' es el mas seguro", "Funciona bien para carpetas de hasta ~500 archivos"],
+  },
+];
+
+// ============ CHANNELS CASES ============
+const channelsCases = [
+  {
+    id: "deploy-monitor",
+    title: "Monitorear deploy en produccion",
+    scenario: "Hiciste deploy antes de salir de la oficina. Quieres monitorear desde tu Telegram mientras cenas.",
+    icon: "🚀",
+    platform: "Telegram",
+    difficulty: "Medio",
+    prompt: `Monitorea el deploy que acaba de completarse:
+
+1. Revisa los logs de los ultimos 10 minutos:
+   tail -100 /var/log/app/production.log
+
+2. Verifica que todos los servicios estan corriendo:
+   docker ps --format "table {{.Names}}\\t{{.Status}}\\t{{.Ports}}"
+
+3. Haz 5 health checks al endpoint principal:
+   for i in {1..5}; do curl -s -o /dev/null -w "%{http_code} - %{time_total}s" https://api.miapp.com/health; echo; sleep 10; done
+
+4. Si algun servicio no esta healthy o el response time > 2s, avisame inmediatamente con el detalle del error.
+
+5. Si todo esta OK despues de los 5 checks, responde con "Deploy estable" y un resumen de los tiempos de respuesta.`,
+    result: "Claude ejecuta los checks secuencialmente en tu VPS y te reporta el status por Telegram en ~2 minutos.",
+    tips: ["Ideal para post-deploy monitoring", "Agrega 'y revisa los error logs de Sentry si hay acceso' si tienes CLI configurado", "Funciona bien con docker, pm2, systemd"],
+    time: "~5 min",
+  },
+  {
+    id: "hotfix-remote",
+    title: "Hotfix de emergencia desde el telefono",
+    scenario: "Estas en una cena. Tu equipo reporta un bug critico en produccion. Necesitas un fix rapido.",
+    icon: "🔥",
+    platform: "Telegram",
+    difficulty: "Avanzado",
+    prompt: `Bug critico reportado: el endpoint /api/users/profile devuelve 500 cuando el campo "bio" esta vacio.
+
+1. Primero, investiga el error:
+   - Revisa los ultimos errores en los logs: grep "500" /var/log/app/production.log | tail -20
+   - Busca el archivo relevante: find /app/src -name "*.ts" | xargs grep -l "users/profile"
+
+2. Muestrame el codigo del handler que causa el error. NO modifiques nada todavia.
+
+3. Propon el fix con un diff claro.
+
+4. ESPERA mi aprobacion antes de aplicar cualquier cambio.
+
+Si necesitas mas contexto del codebase para entender el problema, investiga primero y preguntame.`,
+    result: "Claude investiga logs, encuentra el archivo, te muestra el codigo problematico y propone un fix. Tu apruebas desde Telegram antes de que toque nada.",
+    tips: ["SIEMPRE pide que espere tu aprobacion antes de modificar codigo en produccion", "El pattern investigar -> proponer -> esperar aprobacion es critico", "Si usas --dangerously-skip-permissions, ten MAS cuidado con esto"],
+    time: "~10 min",
+  },
+  {
+    id: "db-backup",
+    title: "Verificar y crear backup de base de datos",
+    scenario: "Antes de un release grande, necesitas verificar que el ultimo backup esta OK y crear uno nuevo.",
+    icon: "💾",
+    platform: "Discord",
+    difficulty: "Medio",
+    prompt: `Necesito verificar backups y crear uno nuevo antes del release de manana.
+
+1. Verifica el ultimo backup:
+   ls -lah /backups/db/ | tail -5
+
+2. Verifica que el backup no esta corrupto:
+   pg_restore --list /backups/db/[ultimo_archivo] | head -20
+
+3. Crea un nuevo backup con timestamp:
+   pg_dump -Fc -Z 9 myapp_production > /backups/db/myapp_$(date +%Y%m%d_%H%M%S).dump
+
+4. Verifica el nuevo backup:
+   pg_restore --list /backups/db/myapp_*.dump | tail -5
+
+5. Reporta: tamano del backup, numero de tablas, y confirmacion de integridad.
+
+6. Si hay espacio limitado, lista backups de mas de 30 dias para que yo decida cuales borrar.`,
+    result: "Claude verifica backups existentes, crea uno nuevo, valida integridad y te reporta todo por Discord.",
+    tips: ["Discord es mejor que Telegram para esto porque retiene mensajes si la sesion se reinicia", "Ajusta el comando pg_dump a tu motor de BD (mysql, mongo, etc.)", "Puedes programar esto con tmux + cron"],
+    time: "~5 min",
+  },
+  {
+    id: "log-analysis",
+    title: "Analisis de logs y deteccion de patrones",
+    scenario: "Tu app tiene problemas de performance intermitentes. Necesitas que alguien revise los logs mientras duermes.",
+    icon: "📋",
+    platform: "Telegram",
+    difficulty: "Medio",
+    prompt: `Analiza los logs de las ultimas 24 horas buscando problemas de performance:
+
+1. Encuentra requests lentos (> 3 segundos):
+   grep -E "response_time=[3-9][0-9]{3}|response_time=[0-9]{5}" /var/log/app/access.log | wc -l
+
+2. Busca errores 5xx agrupados por endpoint:
+   awk '/HTTP\\/1.1" 5[0-9][0-9]/ {print $7}' /var/log/app/access.log | sort | uniq -c | sort -rn | head -10
+
+3. Detecta patrones temporales:
+   awk '/HTTP\\/1.1" 5[0-9][0-9]/ {print substr($4,2,14)}' /var/log/app/access.log | sort | uniq -c | sort -rn | head -10
+
+4. Revisa uso de memoria y CPU:
+   sar -r 1 5 2>/dev/null || free -h
+   sar -u 1 5 2>/dev/null || top -bn1 | head -5
+
+Genera un reporte con:
+- Resumen ejecutivo (1 parrafo)
+- Top 5 endpoints problematicos
+- Patron temporal detectado
+- Recomendaciones de fix priorizadas
+
+Guardalo en /home/user/reports/performance-analysis-$(date +%Y%m%d).md`,
+    result: "Claude procesa los logs, identifica patrones y genera un reporte accionable que revisas por la manana.",
+    tips: ["Puedes dejar esto corriendo overnight con tmux", "Si tienes acceso a Datadog/New Relic CLI, agrega eso como fuente", "Ajusta los umbrales (3s, 5xx) a los SLAs de tu app"],
+    time: "~8 min",
+  },
+  {
+    id: "git-operations",
+    title: "Operaciones de Git desde el telefono",
+    scenario: "Un companero necesita que mergees su PR y hagas deploy. Estas en el gym.",
+    icon: "🔀",
+    platform: "Discord",
+    difficulty: "Facil",
+    prompt: `Necesito revisar y mergear un PR:
+
+1. Lista los PRs abiertos:
+   gh pr list --state open
+
+2. Muestrame el diff del PR #47:
+   gh pr diff 47
+
+3. Muestrame los checks de CI:
+   gh pr checks 47
+
+4. Si los checks estan verdes, muestrame un resumen del cambio y ESPERA mi aprobacion para mergear.
+
+5. Cuando yo diga "dale", mergea con:
+   gh pr merge 47 --squash --delete-branch
+
+6. Despues del merge, confirma que el deploy automatico se disparo:
+   gh run list --limit 3`,
+    result: "Claude te muestra el diff, status de CI, y espera tu OK antes de mergear. Todo desde Discord.",
+    tips: ["Requiere gh CLI instalado y autenticado en tu VPS", "El pattern 'mostrar -> esperar aprobacion -> ejecutar' es esencial", "Funciona con cualquier operacion de git: cherry-pick, rebase, tag"],
+    time: "~3 min",
+  },
+  {
+    id: "cron-setup",
+    title: "Configurar tareas programadas en VPS",
+    scenario: "Necesitas que tu VPS haga ciertas tareas automaticamente y quieres configurarlo remotamente.",
+    icon: "⏰",
+    platform: "Telegram",
+    difficulty: "Avanzado",
+    prompt: `Necesito configurar 3 tareas automatizadas en este servidor:
+
+1. BACKUP DIARIO (2am):
+   - Dump de PostgreSQL comprimido a /backups/db/
+   - Retener solo los ultimos 7 dias
+   - Log a /var/log/backup.log
+
+2. LIMPIEZA SEMANAL (domingos 3am):
+   - Eliminar archivos temporales en /tmp/ mayores a 7 dias
+   - Eliminar logs rotados mayores a 30 dias en /var/log/app/
+   - Reportar espacio liberado
+
+3. HEALTH CHECK cada 5 minutos:
+   - Curl a localhost:3000/health
+   - Si falla 3 veces seguidas, reiniciar el servicio con: systemctl restart myapp
+   - Log cada reinicio a /var/log/health-monitor.log
+
+Para cada tarea:
+- Crea el script bash en /home/user/scripts/
+- Muestrame el contenido ANTES de crearlo
+- Configura el crontab entry
+- Hazlo executable con chmod +x
+
+ESPERA mi aprobacion entre cada script. No instales todo de golpe.`,
+    result: "Claude crea scripts bash paso a paso, te muestra cada uno para aprobar, y configura crontab.",
+    tips: ["El approach incremental (un script a la vez con aprobacion) previene errores en cadena", "Siempre pide que muestre el script ANTES de escribirlo", "Agrega 'y enviame un test del script' despues de crear cada uno"],
+    time: "~12 min",
+  },
+];
+
+// ============ FLOWCHART & CHECKLIST DATA ============
+const flowchart = [
+  { question: "Necesitas acceso a archivos locales del desktop?", yes: "Dispatch", no: "next" },
+  { question: "Necesitas ejecutar comandos de terminal?", yes: "Channels", no: "next" },
+  { question: "Necesitas conectores (Gmail, Slack, Drive)?", yes: "Dispatch", no: "next" },
+  { question: "Estas monitoreando un VPS o servidor?", yes: "Channels", no: "next" },
+  { question: "La tarea es de lectura/resumen?", yes: "Dispatch", no: "Channels" },
+];
+
+const checklist = {
+  dispatch: [
+    { item: "Claude Desktop actualizado a ultima version" },
+    { item: "Claude Mobile actualizado" },
+    { item: "Misma cuenta en ambos dispositivos" },
+    { item: "QR escaneado y pareado" },
+    { item: "File access habilitado" },
+    { item: "Keep computer awake activado" },
+    { item: "Conectores necesarios activados (Gmail, Drive, etc.)" },
+    { item: "Carpeta de trabajo creada (/Documents/Claude/)" },
+    { item: "Probado con tarea simple antes de confiar en tareas complejas" },
+  ],
+  channels: [
+    { item: "Claude Code v2.1.80+ instalado" },
+    { item: "Bun instalado (bun --version)" },
+    { item: "Login con claude.ai (no API key)" },
+    { item: "Fakechat probado y funcionando" },
+    { item: "Bot creado (BotFather o Discord Dev Portal)" },
+    { item: "Plugin instalado y token configurado" },
+    { item: "Sesion relanzada con --channels flag" },
+    { item: "Dispositivo pareado con codigo" },
+    { item: "Politica cambiada a allowlist" },
+    { item: "tmux configurado para persistencia" },
+    { item: "Probado con comando simple antes de tareas criticas" },
+  ],
+};
+
+// ============ COMPONENTS ============
+const SeverityBadge = ({ severity }) => {
+  const c = { critical: { bg: "#7F1D1D", text: "#FCA5A5", l: "CRITICO" }, warning: { bg: "#78350F", text: "#FDE68A", l: "CUIDADO" }, info: { bg: "#1E3A5F", text: "#93C5FD", l: "INFO" } }[severity];
+  return <span style={{ background: c.bg, color: c.text, padding: "2px 8px", borderRadius: 4, fontSize: 10, fontWeight: 700, letterSpacing: 0.5, fontFamily: "monospace" }}>{c.l}</span>;
+};
+
+const StepCard = ({ step, title, desc, color }) => (
+  <div style={{ display: "flex", gap: 14, alignItems: "flex-start", padding: "12px 0", borderBottom: "1px solid #1a1a1a" }}>
+    <div style={{ width: 32, height: 32, borderRadius: "50%", background: color, color: "#000", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 14, fontFamily: "monospace", flexShrink: 0 }}>{step}</div>
+    <div><div style={{ fontWeight: 700, color: "#eee", fontSize: 14, marginBottom: 2 }}>{title}</div><div style={{ color: "#999", fontSize: 13, lineHeight: 1.5 }}>{desc}</div></div>
+  </div>
+);
+
+const Section = ({ title, color, children }) => (
+  <div style={{ marginBottom: 28 }}>
+    <h3 style={{ fontFamily: "monospace", fontSize: 11, letterSpacing: 2.5, textTransform: "uppercase", color, margin: "0 0 14px", borderBottom: `2px solid ${color}40`, paddingBottom: 8 }}>{title}</h3>
+    {children}
+  </div>
+);
+
+const PromptBlock = ({ text }) => (
+  <div style={{ background: "#050505", border: "1px solid #1a1a1a", borderRadius: 10, padding: "16px 20px", margin: "10px 0", position: "relative" }}>
+    <div style={{ position: "absolute", top: 8, right: 12, fontSize: 9, color: "#444", fontFamily: "monospace", letterSpacing: 1 }}>PROMPT COMPLETO</div>
+    <pre style={{ fontFamily: "'Menlo', 'Courier New', monospace", fontSize: 12, color: "#ccc", lineHeight: 1.7, whiteSpace: "pre-wrap", margin: 0, paddingTop: 12 }}>{text}</pre>
+  </div>
+);
+
+const UseCaseCard = ({ c, color, expanded, onClick }) => (
+  <div style={{ background: "#0a0a0a", border: `1px solid ${expanded ? color + "40" : "#1a1a1a"}`, borderRadius: 12, marginBottom: 10, overflow: "hidden", transition: "all 0.3s" }}>
+    <button onClick={onClick} style={{ width: "100%", textAlign: "left", padding: "16px 20px", background: "transparent", border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: 14 }}>
+      <span style={{ fontSize: 24 }}>{c.icon}</span>
+      <div style={{ flex: 1 }}>
+        <div style={{ fontWeight: 700, color: expanded ? color : "#ddd", fontSize: 15 }}>{c.title}</div>
+        <div style={{ color: "#666", fontSize: 12, marginTop: 2 }}>{c.scenario}</div>
+      </div>
+      <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", justifyContent: "flex-end" }}>
+        {c.platform && <span style={{ background: c.platform === "Telegram" ? TG + "20" : DC + "20", color: c.platform === "Telegram" ? TG : DC, padding: "2px 8px", borderRadius: 12, fontSize: 10, fontFamily: "monospace" }}>{c.platform}</span>}
+        <span style={{ background: `${color}15`, color, padding: "2px 8px", borderRadius: 12, fontSize: 10, fontFamily: "monospace" }}>{c.difficulty}</span>
+        <span style={{ color: expanded ? color : "#333", fontSize: 16 }}>{expanded ? "\u25BE" : "\u25B8"}</span>
+      </div>
+    </button>
+    {expanded && (
+      <div style={{ padding: "0 20px 20px", animation: "fadeSlide 0.3s ease" }}>
+        <div style={{ borderTop: "1px solid #1a1a1a", paddingTop: 16 }}>
+          <div style={{ fontFamily: "monospace", fontSize: 10, color: "#555", letterSpacing: 1.5, marginBottom: 6 }}>TIEMPO ESTIMADO: {c.time}</div>
+          <h4 style={{ color, fontSize: 13, fontFamily: "monospace", margin: "16px 0 8px", letterSpacing: 1 }}>PROMPT — COPIA Y PEGA EXACTAMENTE</h4>
+          <PromptBlock text={c.prompt} />
+          <h4 style={{ color: "#888", fontSize: 13, fontFamily: "monospace", margin: "16px 0 8px", letterSpacing: 1 }}>QUE OBTIENES</h4>
+          <p style={{ color: "#999", fontSize: 13, lineHeight: 1.6, margin: 0, padding: "0 0 0 12px", borderLeft: `2px solid ${color}30` }}>{c.result}</p>
+          <h4 style={{ color: "#888", fontSize: 13, fontFamily: "monospace", margin: "16px 0 8px", letterSpacing: 1 }}>TIPS</h4>
+          {c.tips.map((t, i) => (
+            <div key={i} style={{ display: "flex", gap: 8, padding: "4px 0", fontSize: 12.5, color: "#777" }}>
+              <span style={{ color, flexShrink: 0 }}>{"\u2192"}</span> {t}
+            </div>
+          ))}
+        </div>
+      </div>
+    )}
+  </div>
+);
+
+const ChecklistSection = ({ items, color }) => {
+  const [checked, setChecked] = useState(items.map(() => false));
+  const done = checked.filter(Boolean).length;
+  return (
+    <div>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
+        <div style={{ flex: 1, height: 6, background: "#1a1a1a", borderRadius: 3, overflow: "hidden" }}>
+          <div style={{ width: `${(done / items.length) * 100}%`, height: "100%", background: color, borderRadius: 3, transition: "width 0.3s" }} />
+        </div>
+        <span style={{ fontFamily: "monospace", fontSize: 11, color }}>{done}/{items.length}</span>
+      </div>
+      {items.map((item, i) => (
+        <label key={i} style={{ display: "flex", gap: 10, alignItems: "center", padding: "8px 0", cursor: "pointer", borderBottom: "1px solid #111" }}>
+          <input type="checkbox" checked={checked[i]} onChange={() => { const n = [...checked]; n[i] = !n[i]; setChecked(n); }}
+            style={{ accentColor: color, width: 16, height: 16, cursor: "pointer" }} />
+          <span style={{ color: checked[i] ? "#555" : "#bbb", fontSize: 13, textDecoration: checked[i] ? "line-through" : "none", transition: "all 0.2s" }}>{item.item}</span>
+        </label>
+      ))}
+    </div>
+  );
+};
+
+// ============ VIEWS ============
+const UseCasesView = () => {
+  const [expandedD, setExpandedD] = useState(null);
+  const [expandedC, setExpandedC] = useState(null);
+
+  return (
+    <div style={{ animation: "fadeSlide 0.4s ease" }}>
+      <div style={{ background: "linear-gradient(135deg, #EF444415 0%, #F5920B15 100%)", border: "1px solid #EF444440", borderRadius: 12, padding: "18px 22px", marginBottom: 24, position: "relative", overflow: "hidden" }}>
+        <div style={{ position: "absolute", top: 10, right: 14, background: "#EF4444", color: "#fff", padding: "3px 10px", borderRadius: 20, fontSize: 10, fontWeight: 800, letterSpacing: 1, fontFamily: "monospace" }}>NUEVO - 23 MAR</div>
+        <div style={{ fontSize: 20, fontWeight: 800, color: "#EF4444", marginBottom: 6 }}>Computer Use</div>
+        <p style={{ color: "#bbb", fontSize: 13, lineHeight: 1.6, margin: "0 0 8px", maxWidth: 600 }}>
+          Claude ahora puede controlar tu Mac: mouse, teclado y pantalla. Abre apps, navega el browser, llena spreadsheets — lo que tu harias sentado en tu escritorio. <strong style={{ color: "#F59E0B" }}>Combinado con Dispatch = le mandas tareas desde tu telefono y Claude controla tu Mac.</strong>
+        </p>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", fontSize: 11, fontFamily: "monospace" }}>
+          {["macOS only (Windows pronto)", "Research preview", "Pro + Max", "Cowork + Code"].map((t, i) => (
+            <span key={i} style={{ background: "#1a1a1a", color: "#999", padding: "3px 10px", borderRadius: 12 }}>{t}</span>
+          ))}
+        </div>
+      </div>
+
+      <Section title={`Computer Use — ${computerUseCases.length} casos de uso (NUEVO)`} color={COMPUTER_USE}>
+        <p style={{ color: "#777", fontSize: 13, lineHeight: 1.5, marginBottom: 10 }}>
+          Lanzado el 23 de marzo 2026. Claude captura tu pantalla, reconoce lo que ve, y envia comandos de mouse/teclado. Prioriza conectores directos primero; solo usa screen control cuando no hay alternativa.
+        </p>
+        <div style={{ background: "#0a0a0a", border: "1px solid #EF444430", borderRadius: 8, padding: "10px 14px", marginBottom: 16, display: "flex", gap: 8, alignItems: "flex-start" }}>
+          <span>⚠️</span>
+          <div style={{ color: "#999", fontSize: 12, lineHeight: 1.5 }}>
+            <strong style={{ color: "#EF4444" }}>Seguridad:</strong> Computer Use corre fuera del sandbox. Claude ve TODO en tu pantalla. No tengas apps sensibles abiertas (banca, crypto wallets). Cuidado con prompt injection al navegar web.
+          </div>
+        </div>
+        {computerUseCases.map((c) => (
+          <UseCaseCard key={c.id} c={c} color={COMPUTER_USE} expanded={expandedD === c.id} onClick={() => setExpandedD(expandedD === c.id ? null : c.id)} />
+        ))}
+      </Section>
+
+      <Section title={`Dispatch — ${dispatchCases.length} casos de uso con prompt completo`} color={COWORK}>
+        <p style={{ color: "#777", fontSize: 13, lineHeight: 1.5, marginBottom: 16 }}>
+          Cada caso incluye el prompt exacto que puedes copiar y pegar. Ajusta las rutas de carpeta y nombres a tu situacion.
+        </p>
+        {dispatchCases.map((c) => (
+          <UseCaseCard key={c.id} c={c} color={COWORK} expanded={expandedD === c.id} onClick={() => setExpandedD(expandedD === c.id ? null : c.id)} />
+        ))}
+      </Section>
+
+      <Section title={`Channels — ${channelsCases.length} casos de uso con prompt completo`} color={CODE}>
+        <p style={{ color: "#777", fontSize: 13, lineHeight: 1.5, marginBottom: 16 }}>
+          Cada caso incluye el prompt exacto para enviar por Telegram o Discord. Ajusta comandos a tu stack.
+        </p>
+        {channelsCases.map((c) => (
+          <UseCaseCard key={c.id} c={c} color={CODE} expanded={expandedC === c.id} onClick={() => setExpandedC(expandedC === c.id ? null : c.id)} />
+        ))}
+      </Section>
+    </div>
+  );
+};
+
+const ToolkitView = () => (
+  <div style={{ animation: "fadeSlide 0.4s ease" }}>
+    <Section title="Flowchart: Dispatch o Channels?" color="#fff">
+      <div style={{ background: "#0a0a0a", border: "1px solid #1a1a1a", borderRadius: 12, padding: 20 }}>
+        {flowchart.map((f, i) => (
+          <div key={i} style={{ marginBottom: 16 }}>
+            <div style={{ color: "#ddd", fontSize: 14, fontWeight: 600, marginBottom: 8 }}>{i + 1}. {f.question}</div>
+            <div style={{ display: "flex", gap: 10, paddingLeft: 20, flexWrap: "wrap" }}>
+              <span style={{ background: f.yes === "Dispatch" ? COWORK + "20" : f.yes === "Channels" ? CODE + "20" : "#1a1a1a", color: f.yes === "Dispatch" ? COWORK : f.yes === "Channels" ? CODE : "#666", padding: "4px 14px", borderRadius: 20, fontSize: 12, fontWeight: 600 }}>
+                SI {"\u2192"} {f.yes === "next" ? "Siguiente pregunta" : `Usa ${f.yes}`}
+              </span>
+              <span style={{ background: f.no === "Dispatch" ? COWORK + "20" : f.no === "Channels" ? CODE + "20" : "#1a1a1a", color: f.no === "Dispatch" ? COWORK : f.no === "Channels" ? CODE : "#666", padding: "4px 14px", borderRadius: 20, fontSize: 12, fontWeight: 600 }}>
+                NO {"\u2192"} {f.no === "next" ? "Siguiente pregunta" : `Usa ${f.no}`}
+              </span>
+            </div>
+          </div>
+        ))}
+      </div>
+    </Section>
+
+    <Section title="Checklist de implementacion — Computer Use" color="#EF4444">
+      <ChecklistSection items={[
+        {item:"Claude Desktop actualizado a ultima version (macOS)"},
+        {item:"Settings > General > Computer use toggle ON"},
+        {item:"Permiso macOS: Accessibility concedido"},
+        {item:"Permiso macOS: Screen Recording concedido"},
+        {item:"Apps sensibles cerradas (banca, crypto, healthcare)"},
+        {item:"Conectores principales configurados (Gmail, Drive, Slack)"},
+        {item:"Probado con tarea simple (abrir una app, tomar screenshot)"},
+        {item:"Para Dispatch combo: QR pareado con app movil"},
+        {item:"Mac configurado para no dormir (System Settings > Energy)"},
+      ]} color="#EF4444" />
+    </Section>
+
+    <Section title="Checklist de implementacion — Dispatch" color={COWORK}>
+      <ChecklistSection items={checklist.dispatch} color={COWORK} />
+    </Section>
+
+    <Section title="Checklist de implementacion — Channels" color={CODE}>
+      <ChecklistSection items={checklist.channels} color={CODE} />
+    </Section>
+
+    <Section title="Prompting tips que aplican a ambos" color="#F59E0B">
+      {[
+        { tip: "Se ultra especifico con rutas", bad: "'busca mi presupuesto'", good: "'busca /Documents/Finance/budget-Q1.xlsx'" },
+        { tip: "Una tarea por mensaje", bad: "'haz el reporte, mandalo por email y agenda reunion'", good: "'genera el reporte en /Reports/ y avisame cuando este listo'" },
+        { tip: "Pide confirmacion antes de acciones destructivas", bad: "'borra los archivos viejos'", good: "'lista archivos de mas de 90 dias. NO borres nada todavia.'" },
+        { tip: "Especifica el formato del output", bad: "'dame un resumen'", good: "'genera un Excel con pestanas: Resumen, Detalle, Grafico'" },
+        { tip: "Incluye criterios de exito", bad: "'revisa los logs'", good: "'busca requests con response_time > 3s en las ultimas 24h'" },
+      ].map((t, i) => (
+        <div key={i} style={{ background: "#0a0a0a", border: "1px solid #1a1a1a", borderRadius: 10, padding: "14px 18px", marginBottom: 10 }}>
+          <div style={{ fontWeight: 700, color: "#ddd", fontSize: 13, marginBottom: 8 }}>{t.tip}</div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, fontSize: 12 }}>
+            <div style={{ background: "#1a0505", borderRadius: 6, padding: "8px 12px" }}>
+              <span style={{ color: "#EF4444", fontFamily: "monospace", fontSize: 10 }}>X </span>
+              <span style={{ color: "#999" }}>{t.bad}</span>
+            </div>
+            <div style={{ background: "#051a0a", borderRadius: 6, padding: "8px 12px" }}>
+              <span style={{ color: CODE, fontFamily: "monospace", fontSize: 10 }}>OK </span>
+              <span style={{ color: "#999" }}>{t.good}</span>
+            </div>
+          </div>
+        </div>
+      ))}
+    </Section>
+
+    <Section title="Plantilla: CLAUDE.md para Channels en VPS" color={CODE}>
+      <PromptBlock text={`# CLAUDE.md — Configuracion para sesion Channels
+
+## Contexto del servidor
+- Servidor: Ubuntu 24.04 VPS (Hostinger/DigitalOcean)
+- Stack: Node.js 20 + PostgreSQL 16 + Nginx
+- App principal: /home/user/app/
+- Logs: /var/log/app/
+- Backups: /backups/
+
+## Reglas
+- NUNCA reiniciar nginx sin confirmacion explicita
+- NUNCA modificar archivos en /etc/ sin mostrar el diff antes
+- NUNCA hacer DROP de tablas o databases
+- Siempre crear backup antes de migrations
+- Siempre mostrar el plan antes de ejecutar cambios
+
+## Convenciones
+- Branch principal: main
+- Deploy: git pull && npm run build && pm2 restart all
+- Logs: usar 'pm2 logs --lines 50' para ver logs recientes
+- DB: usar 'psql -U appuser -d myapp' para queries
+
+## Comandos frecuentes
+- Health check: curl -s localhost:3000/health | jq
+- Disk space: df -h /
+- Memory: free -h
+- Processes: pm2 status`} />
+    </Section>
+  </div>
+);
+
+// ============ SETUP TAB ============
+const featuresData = {
+  dispatch: {
+    description: "Asigna tareas a Claude desde tu telefono. Claude trabaja en tu desktop con acceso a archivos locales, conectores y plugins. Vuelves y el trabajo esta listo.",
+    prereqs: [
+      { item: "Plan Pro ($20/mes) o Max ($100-200/mes)" }, { item: "Claude Desktop (macOS o Windows x64)" },
+      { item: "Claude Mobile App (iOS o Android)" }, { item: "Misma cuenta Anthropic en ambos dispositivos" },
+      { item: "Desktop encendido y Claude Desktop abierto" },
+    ],
+    setup: [
+      { step: 1, title: "Actualizar apps", desc: "Descarga o actualiza Claude Desktop y la app movil" },
+      { step: 2, title: "Abrir Cowork", desc: "En Desktop > pestana Cowork" },
+      { step: 3, title: "Click Dispatch", desc: "Sidebar izquierdo > Dispatch" },
+      { step: 4, title: "Get started", desc: "Iniciar flujo de pareamiento" },
+      { step: 5, title: "Permisos", desc: "Activar file access y 'Keep this computer awake'" },
+      { step: 6, title: "Escanear QR", desc: "Escanear desde app movil — unico" },
+      { step: 7, title: "Listo", desc: "Enviar tareas desde el telefono" },
+    ],
+    gotchas: [
+      { severity: "critical", text: "Desktop DEBE estar encendido. Si duerme la tarea muere." },
+      { severity: "critical", text: "NO hay notificaciones push cuando termina." },
+    ],
+  },
+  channels: {
+    description: "Controla sesiones de Claude Code desde Telegram o Discord. Un plugin MCP corre en tu maquina, recibe mensajes, Claude ejecuta con acceso completo al entorno.",
+    prereqs: [
+      { item: "Claude Code v2.1.80+" }, { item: "Runtime Bun instalado" },
+      { item: "Login con claude.ai (Pro, Max, Team, Enterprise)" },
+      { item: "Team/Enterprise: admin debe habilitar channelsEnabled" },
+      { item: "tmux para persistencia de sesion" },
+    ],
+    telegramSetup: [
+      { step: 1, title: "Crear bot", desc: "@BotFather > /newbot > copiar token" },
+      { step: 2, title: "Instalar plugin", desc: "/plugin install telegram@claude-plugins-official" },
+      { step: 3, title: "Configurar token", desc: "/telegram:configure TU_TOKEN" },
+      { step: 4, title: "Relanzar", desc: "claude --channels plugin:telegram@claude-plugins-official" },
+      { step: 5, title: "Parear", desc: "DM al bot > codigo > /telegram:access pair CODIGO" },
+      { step: 6, title: "Bloquear", desc: "/telegram:access policy allowlist" },
+    ],
+    discordSetup: [
+      { step: 1, title: "Crear app", desc: "discord.com/developers > New Application" },
+      { step: 2, title: "Message Content Intent", desc: "Habilitar — sin esto falla silenciosamente" },
+      { step: 3, title: "Token", desc: "Bot > Reset Token > copiar" },
+      { step: 4, title: "Permisos", desc: "OAuth2 > bot scope > invitar" },
+      { step: 5, title: "Instalar", desc: "/plugin install discord@... > configure" },
+      { step: 6, title: "Parear", desc: "DM > pair > allowlist" },
+    ],
+    gotchas: [
+      { severity: "critical", text: "Permission prompts BLOQUEAN todo silenciosamente." },
+      { severity: "critical", text: "Telegram: mensajes con sesion caida se PIERDEN." },
+      { severity: "critical", text: "Discord: Message Content Intent = falla silenciosa." },
+    ],
+  },
+};
+
+const SetupTab = () => {
+  const d = featuresData.dispatch;
+  const c = featuresData.channels;
+  const [platform, setPlatform] = useState("telegram");
+
+  return (
+    <div style={{ animation: "fadeSlide 0.4s ease" }}>
+      {/* COMPUTER USE */}
+      <div style={{ background: "#0d0d0d", border: "1px solid #EF444435", borderRadius: 12, padding: "20px 24px", marginBottom: 28, position: "relative" }}>
+        <div style={{ position: "absolute", top: 12, right: 14, background: "#EF4444", color: "#fff", padding: "3px 10px", borderRadius: 20, fontSize: 10, fontWeight: 800, letterSpacing: 1, fontFamily: "monospace" }}>NUEVO - 23 MAR 2026</div>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
+          <span style={{ fontSize: 28 }}>🖥️</span>
+          <div><div style={{ fontWeight: 800, color: "#EF4444", fontSize: 18 }}>Computer Use</div><div style={{ color: "#666", fontSize: 12, fontFamily: "monospace" }}>Mouse, teclado y pantalla</div></div>
+        </div>
+        <p style={{ color: "#999", fontSize: 13.5, lineHeight: 1.65, margin: "0 0 16px" }}>Claude captura tu pantalla, reconoce lo que ve, y envia comandos de mouse/teclado para completar tareas. Funciona en Cowork y Claude Code. Combinado con Dispatch, puedes controlarlo desde tu telefono.</p>
+        <Section title="Setup paso a paso (Cowork)" color="#EF4444">
+          {[
+            {step:1,title:"Actualizar Claude Desktop",desc:"Descarga la ultima version desde claude.com/download (macOS requerido, Windows proximamente)"},
+            {step:2,title:"Abrir Settings",desc:"Claude Desktop > Settings > General (bajo 'Desktop app')"},
+            {step:3,title:"Activar Computer Use",desc:"Encuentra el toggle 'Computer use' y activalo. Esta OFF por defecto."},
+            {step:4,title:"Conceder permisos macOS",desc:"macOS te pedira 2 permisos del sistema: Accessibility (para click, typing, scroll) y Screen Recording (para ver tu pantalla). Ambos son obligatorios."},
+            {step:5,title:"Abrir Cowork o Claude Code",desc:"Inicia una sesion en el desktop app y pide algo que requiera una app de tu computadora."},
+            {step:6,title:"Aprobar acceso por app",desc:"Claude pide permiso ANTES de acceder a cada aplicacion. Tu apruebas o rechazas cada una individualmente."},
+          ].map((s) => <StepCard key={s.step} {...s} color="#EF4444" />)}
+        </Section>
+
+        <Section title="Jerarquia de herramientas (orden de prioridad)" color="#EF4444">
+          {[
+            {n:"1",title:"Conectores",desc:"Gmail, Drive, Slack, Calendar — mas rapido y confiable. Claude los usa primero.",color:"#10B981"},
+            {n:"2",title:"Browser (Claude in Chrome)",desc:"Si no hay conector, Claude navega Chrome para completar la tarea.",color:"#3B82F6"},
+            {n:"3",title:"Screen control (Computer Use)",desc:"Solo cuando nada mas funciona: Claude controla mouse, teclado y pantalla directamente.",color:"#EF4444"},
+          ].map((h,i) => (
+            <div key={i} style={{display:"flex",gap:14,alignItems:"flex-start",padding:"10px 0",borderBottom:"1px solid #1a1a1a"}}>
+              <div style={{width:28,height:28,borderRadius:6,background:`${h.color}20`,color:h.color,display:"flex",alignItems:"center",justifyContent:"center",fontWeight:800,fontSize:13,fontFamily:"monospace",flexShrink:0}}>{h.n}</div>
+              <div><div style={{fontWeight:700,color:"#ddd",fontSize:13}}>{h.title}</div><div style={{color:"#888",fontSize:12,lineHeight:1.4,marginTop:2}}>{h.desc}</div></div>
+            </div>
+          ))}
+        </Section>
+
+        <Section title="Seguridad y protecciones" color="#EF4444">
+          {[
+            {title:"Permisos por app",desc:"Claude pide aprobacion antes de acceder a cada aplicacion. Algunas apps sensibles (trading, crypto) estan bloqueadas por defecto."},
+            {title:"App Blocklist",desc:"Puedes agregar apps a una lista negra. Cualquier request de Claude para usar apps bloqueadas se deniega automaticamente."},
+            {title:"Deteccion de prompt injection",desc:"El sistema escanea activaciones del modelo para detectar prompt injection cuando Claude navega web."},
+            {title:"Fuera del sandbox",desc:"Computer Use corre FUERA de la VM que Cowork usa normalmente. Claude interactua con tu desktop real, no un entorno aislado."},
+          ].map((s,i) => (
+            <div key={i} style={{display:"flex",gap:10,padding:"6px 0",borderBottom:"1px solid #1a1a1a",alignItems:"flex-start"}}>
+              <span style={{color:"#EF4444",fontSize:8,marginTop:6,flexShrink:0}}>{"\u25CF"}</span>
+              <span style={{color:"#bbb",fontSize:13,lineHeight:1.5}}><strong style={{color:"#ddd"}}>{s.title}:</strong> {s.desc}</span>
+            </div>
+          ))}
+        </Section>
+
+        <Section title="Que NO hacer con Computer Use" color="#EF4444">
+          {[
+            {severity:"critical",text:"NO usar con apps de banca, healthcare, o informacion financiera sensible."},
+            {severity:"critical",text:"NO tener apps sensibles abiertas mientras Claude navega — puede ver TODO en tu pantalla."},
+            {severity:"critical",text:"Prompt injection es real: sitios maliciosos pueden dar instrucciones ocultas a Claude."},
+            {severity:"warning",text:"Screenshots consumen MUCHOS tokens. Una tarea compleja gasta significativamente mas quota que chat normal."},
+            {severity:"warning",text:"Acciones en una app pueden afectar otras (ej: click en link de email abre Chrome aunque no lo hayas aprobado)."},
+            {severity:"info",text:"Computer Use es mas lento que conectores directos. Conecta las herramientas que mas usas."},
+            {severity:"info",text:"Tareas complejas a veces necesitan un segundo intento. Empieza con tareas simples."},
+          ].map((g,i) => (
+            <div key={i} style={{display:"flex",gap:10,alignItems:"flex-start",padding:"6px 0",borderBottom:"1px solid #1a1a1a"}}>
+              <SeverityBadge severity={g.severity}/><span style={{color:"#bbb",fontSize:13,lineHeight:1.5}}>{g.text}</span>
+            </div>
+          ))}
+        </Section>
+
+        <Section title="Setup combo: Dispatch + Computer Use (desde el telefono)" color="#D97706">
+          {[
+            {step:1,title:"Activar Computer Use",desc:"Settings > General > Computer use ON + permisos macOS"},
+            {step:2,title:"Configurar Dispatch",desc:"Cowork > Dispatch > Get started > escanear QR con app movil"},
+            {step:3,title:"Mantener Mac encendido",desc:"System Settings > Energy > prevenir sleep. Claude Desktop debe estar abierto."},
+            {step:4,title:"Enviar tarea desde telefono",desc:"Abrir Claude app > Dispatch > escribir tarea. Claude la ejecuta controlando tu Mac."},
+            {step:5,title:"Revisar resultados",desc:"Volver al desktop o revisar desde la app movil. No hay push notifications aun."},
+          ].map((s) => <StepCard key={s.step} {...s} color="#D97706" />)}
+        </Section>
+      </div>
+
+      {/* DISPATCH */}
+      <div style={{ background: "#0d0d0d", border: `1px solid ${COWORK}25`, borderRadius: 12, padding: "20px 24px", marginBottom: 28 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
+          <span style={{ fontSize: 28 }}>📱</span>
+          <div><div style={{ fontWeight: 800, color: COWORK, fontSize: 18 }}>Dispatch</div><div style={{ color: "#666", fontSize: 12, fontFamily: "monospace" }}>Cowork desde tu telefono</div></div>
+        </div>
+        <p style={{ color: "#999", fontSize: 13.5, lineHeight: 1.65, margin: "0 0 16px" }}>{d.description}</p>
+        <Section title="Prerrequisitos" color={COWORK}>
+          {d.prereqs.map((p, i) => <div key={i} style={{ display: "flex", gap: 10, padding: "5px 0", fontSize: 13, color: "#bbb" }}><span style={{ color: COWORK }}>{"\u25CF"}</span> {p.item}</div>)}
+        </Section>
+        <Section title="Setup (~60 segundos)" color={COWORK}>
+          {d.setup.map((s) => <StepCard key={s.step} {...s} color={COWORK} />)}
+        </Section>
+        <Section title="Errores criticos" color="#EF4444">
+          {d.gotchas.map((g, i) => (
+            <div key={i} style={{ display: "flex", gap: 10, padding: "6px 0", borderBottom: "1px solid #1a1a1a" }}>
+              <SeverityBadge severity={g.severity} /><span style={{ color: "#bbb", fontSize: 13, lineHeight: 1.5 }}>{g.text}</span>
+            </div>
+          ))}
+        </Section>
+      </div>
+
+      {/* CHANNELS */}
+      <div style={{ background: "#0d0d0d", border: `1px solid ${CODE}25`, borderRadius: 12, padding: "20px 24px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
+          <span style={{ fontSize: 28 }}>💻</span>
+          <div><div style={{ fontWeight: 800, color: CODE, fontSize: 18 }}>Channels</div><div style={{ color: "#666", fontSize: 12, fontFamily: "monospace" }}>Claude Code desde Telegram/Discord</div></div>
+        </div>
+        <p style={{ color: "#999", fontSize: 13.5, lineHeight: 1.65, margin: "0 0 16px" }}>{c.description}</p>
+        <Section title="Prerrequisitos" color={CODE}>
+          {c.prereqs.map((p, i) => <div key={i} style={{ display: "flex", gap: 10, padding: "5px 0", fontSize: 13, color: "#bbb" }}><span style={{ color: CODE }}>{"\u25CF"}</span> {p.item}</div>)}
+        </Section>
+
+        <div style={{ display: "flex", gap: 0, marginBottom: 16 }}>
+          {[{ id: "telegram", label: "Telegram", color: TG }, { id: "discord", label: "Discord", color: DC }].map((p) => (
+            <button key={p.id} onClick={() => setPlatform(p.id)} style={{ flex: 1, padding: "12px", background: platform === p.id ? `${p.color}20` : "#0a0a0a", border: `1px solid ${platform === p.id ? p.color : "#1a1a1a"}`, borderRadius: p.id === "telegram" ? "10px 0 0 10px" : "0 10px 10px 0", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+              <span style={{ color: platform === p.id ? p.color : "#666", fontWeight: 700, fontSize: 14 }}>{p.label}</span>
+            </button>
+          ))}
+        </div>
+        {(platform === "telegram" ? c.telegramSetup : c.discordSetup).map((s) => (
+          <StepCard key={s.step} {...s} color={platform === "telegram" ? TG : DC} />
+        ))}
+
+        <Section title="Errores criticos" color="#EF4444">
+          {c.gotchas.map((g, i) => (
+            <div key={i} style={{ display: "flex", gap: 10, padding: "6px 0", borderBottom: "1px solid #1a1a1a" }}>
+              <SeverityBadge severity={g.severity} /><span style={{ color: "#bbb", fontSize: 13, lineHeight: 1.5 }}>{g.text}</span>
+            </div>
+          ))}
+        </Section>
+      </div>
+    </div>
+  );
+};
+
+// ============ MAIN APP ============
+function App() {
+  const [tab, setTab] = useState("usecases");
+
+  const tabs = [
+    { id: "usecases", label: "Casos de Uso", color: "#F59E0B" },
+    { id: "setup", label: "Setup", color: "#fff" },
+    { id: "toolkit", label: "Toolkit", color: "#8B5CF6" },
+  ];
+
+  return (
+    <div style={{ minHeight: "100vh", background: "#080808", color: "#e0e0e0", fontFamily: "'Outfit', -apple-system, sans-serif" }}>
+      {/* Header */}
+      <div style={{ padding: "40px 28px 30px", borderBottom: "1px solid #1a1a1a", background: "linear-gradient(180deg, #0f0f0f 0%, #080808 100%)" }}>
+        <div style={{ maxWidth: 900, margin: "0 auto" }}>
+          <div style={{ fontFamily: "monospace", fontSize: 11, color: "#555", letterSpacing: 2.5, textTransform: "uppercase", marginBottom: 14 }}>Guia completa - Marzo 2026 - v3.0</div>
+          <h1 style={{ fontSize: "clamp(26px, 4.5vw, 40px)", fontWeight: 800, margin: 0, letterSpacing: -1.2, lineHeight: 1.15 }}>
+            <span style={{ color: COWORK }}>Dispatch</span><span style={{ color: "#444" }}> + </span><span style={{ color: CODE }}>Channels</span>
+            <br /><span style={{ color: "#EF4444", fontSize: "0.6em" }}>+ Computer Use</span>
+          </h1>
+          <p style={{ color: "#555", fontFamily: "monospace", fontSize: 12.5, margin: "12px 0 0", maxWidth: 600, lineHeight: 1.6 }}>
+            16 casos de uso reales con prompts completos - Setup paso a paso - Checklists interactivos - Troubleshooting - Templates - <span style={{ color: "#EF4444", fontWeight: 700 }}>NUEVO: Computer Use</span>
+          </p>
+          <div style={{ display: "flex", gap: 10, marginTop: 18, flexWrap: "wrap" }}>
+            {[{ l: "Computer Use", c: "#EF4444" }, { l: "6 casos Dispatch", c: COWORK }, { l: "6 casos Channels", c: CODE }, { l: "Checklists", c: "#8B5CF6" }, { l: "CLAUDE.md template", c: "#F59E0B" }].map((b, i) => (
+              <span key={i} style={{ background: `${b.c}15`, color: b.c, padding: "4px 12px", borderRadius: 20, fontSize: 11, fontFamily: "monospace", fontWeight: 600 }}>{b.l}</span>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div style={{ maxWidth: 900, margin: "0 auto", padding: "0 20px" }}>
+        {/* Tabs */}
+        <div style={{ display: "flex", gap: 0, margin: "24px 0 28px", borderRadius: 12, overflow: "hidden", border: "1px solid #1a1a1a" }}>
+          {tabs.map((t) => (
+            <button key={t.id} onClick={() => setTab(t.id)} style={{ flex: 1, padding: "14px 16px", background: tab === t.id ? `${t.color}12` : "#0a0a0a", border: "none", borderBottom: tab === t.id ? `2px solid ${t.color}` : "2px solid transparent", cursor: "pointer", color: tab === t.id ? t.color : "#555", fontWeight: 700, fontSize: 14, fontFamily: "'Outfit', sans-serif", transition: "all 0.2s" }}>
+              {t.label}
+            </button>
+          ))}
+        </div>
+
+        {tab === "usecases" && <UseCasesView />}
+        {tab === "setup" && <SetupTab />}
+        {tab === "toolkit" && <ToolkitView />}
+
+        {/* Footer CTA */}
+        <div style={{ margin: "40px 0", background: `linear-gradient(135deg, ${COWORK}10 0%, ${CODE}10 100%)`, border: "1px solid #ffffff10", borderRadius: 16, padding: "28px 32px", textAlign: "center" }}>
+          <div style={{ fontSize: 22, fontWeight: 800, color: "#ddd", marginBottom: 8 }}>Quieres implementar AI en tu negocio?</div>
+          <p style={{ color: "#888", fontSize: 14, lineHeight: 1.6, maxWidth: 500, margin: "0 auto 16px" }}>
+            Esta guia es una muestra de como trabajamos en Neura.Lab — consultoria AI con resultados medibles para empresas en Latinoamerica.
+          </p>
+          <div style={{ display: "flex", gap: 16, justifyContent: "center", flexWrap: "wrap" }}>
+            <span style={{ background: COWORK, color: "#000", padding: "10px 24px", borderRadius: 8, fontWeight: 700, fontSize: 14 }}>hola@neuralab.lat</span>
+            <span style={{ background: "#1a1a1a", color: "#aaa", padding: "10px 24px", borderRadius: 8, fontWeight: 600, fontSize: 14, border: "1px solid #333" }}>neuralab.lat</span>
+          </div>
+          <div style={{ marginTop: 16, fontFamily: "monospace", fontSize: 11, color: "#555" }}>
+            Guia por <span style={{ color: COWORK }}>LuisconIA</span> | <span style={{ color: "#666" }}>Neura.Lab</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(<App />);
+  </script>
+</body>
+</html>
